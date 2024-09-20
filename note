@@ -1,0 +1,4 @@
+# enable FP
+
+	mov		x0, #0x00300000
+	msr		CPACR_EL1, x0
