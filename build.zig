@@ -20,15 +20,12 @@ pub fn build(b: *std.Build) void {
     });
     kernel_obj.setLinkerScript(b.path("linker.ld"));
     kernel_obj.addAssemblyFile(b.path("src/start.s"));
-
-    const install_obj = b.addInstallBinFile(kernel_obj.getEmittedBin(), "kernel.o");
+    b.installArtifact(kernel_obj);
 
     const kernel_bin = b.addObjCopy(kernel_obj.getEmittedBin(), .{
         .basename = "kernel",
         .format = .bin,
     });
     const install_bin = b.addInstallBinFile(kernel_bin.getOutput(), "kernel.bin");
-
-    b.getInstallStep().dependOn(&install_obj.step);
     b.getInstallStep().dependOn(&install_bin.step);
 }
