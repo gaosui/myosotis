@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const target = b.resolveTargetQuery(.{
         .cpu_arch = .aarch64,
         .cpu_model = .{ .explicit = &aarch64.cpu.cortex_a76 },
-        .cpu_features_sub = aarch64.featureSet(&.{ .neon, .fullfp16 }),
+        .cpu_features_sub = aarch64.featureSet(&.{ .neon, .fullfp16, .fp_armv8 }),
         .os_tag = .freestanding,
         .abi = .none,
     });
