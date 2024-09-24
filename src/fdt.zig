@@ -46,7 +46,7 @@ pub const DeviceQuery = struct {
 
 pub const Parser = struct {
     header: *const Header,
-    query: []const DeviceQuery,
+    callback: *const fn (node: Node) void,
 
     pub fn parse(self: Parser) void {
         // Safe because the structure block is 4-bytes aligned.
@@ -57,12 +57,10 @@ pub const Parser = struct {
             return;
         }
 
-        kprint("hi\n", .{});
         _ = self.recursiveParse(struct_begin + 1);
     }
 
-    fn recursiveParse(self: *const Parser, start: [*]const u32) [*]const u32 {
-        kprint("hi\n", .{});
+    fn recursiveParse(self: Parser, start: [*]const u32) [*]const u32 {
         const name_start: [*:0]const u8 = @ptrCast(start);
         const result = parseName(name_start);
 
@@ -71,7 +69,6 @@ pub const Parser = struct {
             .name = name_start[0..result.len],
             .address = result.addr,
         };
-        kprint("Node {s} @ 0x{?x}\n", .{ node.name, node.address });
 
         while (true) {
             const token = parseToken(pos[0]);
@@ -87,7 +84,7 @@ pub const Parser = struct {
                     pos = alignForward32([*]const u8, value + mem.bigToNative(u32, prop.len));
                 },
                 .end_node => {
-                    self.matchQuery(node);
+                    self.callback(node);
                     break;
                 },
                 .end => break,
@@ -116,11 +113,10 @@ pub const Parser = struct {
     fn parseName(start: [*:0]const u8) ParseNameResult {
         var i: usize = 0;
         var addr_idx: ?usize = null;
-        while (start[i] != 0) {
+        while (start[i] != 0) : (i += 1) {
             if (start[i] == '@') {
                 addr_idx = i + 1;
             }
-            i += 1;
         }
 
         var result = ParseNameResult{
