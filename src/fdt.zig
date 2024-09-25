@@ -20,7 +20,7 @@ pub const ReserveEntry = extern struct {
     size: u64,
 };
 
-pub const Prop = extern struct {
+pub const PropHeader = extern struct {
     len: u32,
     nameoff: u32,
 };
@@ -35,8 +35,13 @@ pub const Token = enum(u8) {
 };
 
 pub const Node = struct {
-    name: []const u8,
+    name: [*:0]const u8,
     address: ?usize = null,
+};
+
+pub const Prop = struct {
+    name: [*:0]const u8,
+    value: []const u8,
 };
 
 pub const DeviceQuery = struct {
@@ -66,7 +71,7 @@ pub const Parser = struct {
 
         var pos = result.next;
         const node = Node{
-            .name = name_start[0..result.len],
+            .name = name_start,
             .address = result.addr,
         };
 
@@ -79,7 +84,7 @@ pub const Parser = struct {
                     pos = self.recursiveParse(pos);
                 },
                 .prop => {
-                    const prop: *const Prop = @ptrCast(pos);
+                    const prop: *const PropHeader = @ptrCast(pos);
                     const value: [*]const u8 = @ptrCast(pos + 2); // 2 32-bit numbers
                     pos = alignForward32([*]const u8, value + mem.bigToNative(u32, prop.len));
                 },
@@ -96,16 +101,7 @@ pub const Parser = struct {
         return pos;
     }
 
-    fn matchQuery(self: *const Parser, node: Node) void {
-        for (self.query) |query| {
-            if (mem.eql(u8, query.name, node.name)) {
-                query.callback(node);
-            }
-        }
-    }
-
     const ParseNameResult = struct {
-        len: usize,
         addr: ?usize = null,
         next: [*]const u32,
     };
@@ -119,10 +115,7 @@ pub const Parser = struct {
             }
         }
 
-        var result = ParseNameResult{
-            .len = i,
-            .next = alignForward32([*]const u8, start + i + 1),
-        };
+        var result = ParseNameResult{ .next = alignForward32([*]const u8, start + i + 1) };
 
         if (addr_idx) |idx| {
             const addr = (start + idx)[0 .. i - idx];
